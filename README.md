@@ -1,334 +1,186 @@
-# AI-Machine-Learning-Assignment-Week-2-Assignment-AI-for-Sustainable-Development
+#AI Machine Learning Assignment
+Week 2 Assignment: AI for Sustainable Development
+Theme: "Machine Learning Meets the UN Sustainable Development Goals (SDGs)" 🌍🤖
 
-# ai_ml_quiz_answers.py
-
+# -*- coding: utf-8 -*-
 """
-This script provides the correct answers to a series of multiple-choice questions
-related to Artificial Intelligence and Machine Learning concepts.
+Week 2 Assignment: AI for Sustainable Development
+Project: Predicting Crop Yields for Food Security (SDG 2: Zero Hunger)
 
-It serves as a consolidated answer key for review.
+This script demonstrates a supervised machine learning approach to predict crop yields
+based on various agricultural factors. This can aid in proactive resource
+management, logistics, and policy-making to combat food insecurity.
 """
 
-def print_question_and_answer(question_number, question, options, correct_option_letter, correct_option_text, explanation=None):
-    """
-    Helper function to print a question, its options, and the correct answer.
-    """
-    print(f"\n--- Question {question_number} ---")
-    print(question)
-    for letter, text in options:
-        print(f"{letter}) {text}")
-    print(f"\nCorrect Answer: {correct_option_letter}) {correct_option_text}")
-    if explanation:
-        print(f"Explanation: {explanation}")
-    print("-" * 40)
+# --- 1. Import necessary libraries ---
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# --- Questions and Answers ---
+# Optional: Suppress warnings for cleaner output
+import warnings
+warnings.filterwarnings('ignore')
 
-# Question 1: Vibe Coding Description
-q1_question = "Which of the following best describes vibe coding?"
-q1_options = [
-    ("A", "A method of writing verbose code by strictly following syntax rules."),
-    ("B", "A process where natural language prompts lead AI tools to generate or modify code."),
-    ("C", "A technique that relies solely on manual coding without any AI assistance."),
-    ("D", "An advanced debugging strategy to optimize existing code.")
-]
-q1_correct_letter = "B"
-q1_correct_text = "A process where natural language prompts lead AI tools to generate or modify code."
-q1_explanation = "Vibe coding uses natural language to guide AI in generating or modifying code, focusing on intent rather than strict syntax."
-print_question_and_answer(1, q1_question, q1_options, q1_correct_letter, q1_correct_text, q1_explanation)
+print("Libraries loaded successfully!")
 
+# --- 2. Dataset & Tools: Synthetic Data Generation ---
+# For demonstration purposes, we create a synthetic dataset.
+# In a real-world scenario, this data would come from sources like FAO, World Bank,
+# national agricultural surveys, or satellite imagery.
 
-# Question 2: Primary Benefit of Vibe Coding
-q2_question = "What is one primary benefit of vibe coding?"
-q2_options = [
-    ("A", "It eliminates the need for any pre-planning or testing."),
-    ("B", "It speeds up the development process by transforming ideas into code rapidly."),
-    ("C", "It increases the complexity of code by adding unnecessary boilerplate."),
-    ("D", "It restricts creativity by enforcing rigid syntax rules.")
-]
-q2_correct_letter = "B"
-q2_correct_text = "It speeds up the development process by transforming ideas into code rapidly."
-q2_explanation = "Vibe coding's main benefit is rapidly converting ideas expressed in natural language into functional code, accelerating development."
-print_question_and_answer(2, q2_question, q2_options, q2_correct_letter, q2_correct_text, q2_explanation)
+print("\n--- 2. Generating Synthetic Crop Yield Data ---")
 
+np.random.seed(42) # for reproducibility
 
-# Question 3: Multimedia Documentation Tools
-q3_question = "In a composite workflow for producing a full-stack application, which tool combination is best for multimedia documentation of the project?"
-q3_options = [
-    ("A", "Cursor AI and Bolt.new"),
-    ("B", "Lovable AI and Cursor AI"),
-    ("C", "Pictory and Synthesia"),
-    ("D", "Bolt.new and Lovable AI")
-]
-q3_correct_letter = "C"
-q3_correct_text = "Pictory and Synthesia"
-q3_explanation = "Pictory and Synthesia are AI tools specifically designed for video and multimedia generation from text or existing content, ideal for rich documentation."
-print_question_and_answer(3, q3_question, q3_options, q3_correct_letter, q3_correct_text, q3_explanation)
+# Number of data points (farms/fields)
+n_samples = 1000
 
+# Features (Input Variables)
+rainfall = np.random.uniform(500, 1500, n_samples) # mm per growing season
+temperature = np.random.uniform(15, 35, n_samples) # Average Celsius during growing season
+fertilizer_used = np.random.uniform(50, 300, n_samples) # kg/hectare
+pesticide_used = np.random.uniform(0, 10, n_samples) # liters/hectare
+soil_types = np.random.choice(['sandy', 'loamy', 'clay'], n_samples, p=[0.3, 0.5, 0.2])
+area_hectares = np.random.uniform(1, 50, n_samples) # hectares
 
-# Question 4: Plan-Verify-Execute Benefit
-q4_question = "How does using a 'plan-verify-execute' prompt structure benefit vibe coding?"
-q4_options = [
-    ("A", "It allows the AI to execute code without any human oversight."),
-    ("B", "It enforces a rigid development process that discourages changes."),
-    ("C", "It creates checkpoints by having the AI outline its planned modifications, reducing the risk of unintended changes."),
-    ("D", "It eliminates the need for any testing or iterative feedback.")
-]
-q4_correct_letter = "C"
-q4_correct_text = "It creates checkpoints by having the AI outline its planned modifications, reducing the risk of unintended changes."
-q4_explanation = "The 'plan-verify-execute' structure provides human oversight before execution, reducing errors and unintended changes."
-print_question_and_answer(4, q4_question, q4_options, q4_correct_letter, q4_correct_text, q4_explanation)
+# Target Variable (Output: Crop Yield in tons/hectare)
+# We define a simple relationship with some noise to simulate real-world variability
+# Base yield + (effect of rainfall * weight) + (effect of temp * weight) + ... + noise
+crop_yield = (
+    5.0
+    + (rainfall / 200) * 0.5   # Higher rainfall, higher yield (up to a point)
+    + (temperature / 10) * 0.3 # Optimal temperature range is crucial
+    + (fertilizer_used / 100) * 0.7 # Fertilizer has a strong positive effect
+    - (pesticide_used * 0.2)   # Pesticides might have slight negative if overused, or positive if controlling pests
+    + (area_hectares * 0.05)   # Larger area might slightly increase yield per hectare due to scale
+    + np.random.normal(0, 1.5, n_samples) # Add some random noise
+)
 
+# Adjust for soil type effects (simplified)
+for i in range(n_samples):
+    if soil_types[i] == 'sandy':
+        crop_yield[i] *= 0.8 # Sandy soil generally lower yield
+    elif soil_types[i] == 'clay':
+        crop_yield[i] *= 1.1 # Clay soil generally higher yield (good water retention)
 
-# Question 5: Guardrails Benefit
-q5_question = "What does setting up guardrails in vibe coding prompt engineering help ensure?"
-q5_options = [
-    ("A", "That AI only performs modifications explicitly specified in the prompt, minimizing unintended changes."),
-    ("B", "That AI is allowed to alter any part of the codebase without restrictions."),
-    ("C", "That the entire project must be rewritten from scratch at each iteration."),
-    ("D", "That manual code changes are completely eliminated in development.")
-]
-q5_correct_letter = "A"
-q5_correct_text = "That AI only performs modifications explicitly specified in the prompt, minimizing unintended changes."
-q5_explanation = "Guardrails define boundaries for AI actions, ensuring it sticks to specified modifications and prevents unintended alterations."
-print_question_and_answer(5, q5_question, q5_options, q5_correct_letter, q5_correct_text, q5_explanation)
+# Ensure yield is not negative
+crop_yield = np.maximum(0.5, crop_yield)
 
+# Create a DataFrame
+data = pd.DataFrame({
+    'Rainfall_mm': rainfall,
+    'Temperature_C': temperature,
+    'Fertilizer_kg_ha': fertilizer_used,
+    'Pesticide_L_ha': pesticide_used,
+    'Soil_Type': soil_types,
+    'Area_Hectares': area_hectares,
+    'Crop_Yield_tons_ha': crop_yield
+})
 
-# Question 6: CI/CD Integration Benefit
-q6_question = "How does integrating vibe-coded projects with cloud-based CI/CD pipelines benefit the development lifecycle?"
-q6_options = [
-    ("A", "It introduces unnecessary complexity without tangible improvements."),
-    ("B", "It only benefits multimedia content creation and not traditional code."),
-    ("C", "It replaces all the natural language processing aspects of vibe coding."),
-    ("D", "It automates testing, containerization, vulnerability scanning, and deployment—ensuring rapid and secure production releases.")
-]
-q6_correct_letter = "D"
-q6_correct_text = "It automates testing, containerization, vulnerability scanning, and deployment—ensuring rapid and secure production releases."
-q6_explanation = "CI/CD pipelines automate critical steps like testing and deployment, speeding up the delivery of stable and secure applications generated via vibe coding."
-print_question_and_answer(6, q6_question, q6_options, q6_correct_letter, q6_correct_text, q6_explanation)
+print("Synthetic data generated successfully. First 5 rows:")
+print(data.head())
+print(f"Dataset shape: {data.shape}")
 
+# --- 3. Build Your Model: Preprocess Data ---
+print("\n--- 3. Preprocessing Data ---")
 
-# Question 7: Definition of AI
-q7_question = "What best defines Artificial Intelligence (AI)?"
-q7_options = [
-    ("A", "Machines that can perform physical tasks like humans."),
-    ("B", "Systems that simulate human intelligence to think and learn."),
-    ("C", "Software designed exclusively for data storage."),
-    ("D", "Tools used only for mathematical calculations.")
-]
-q7_correct_letter = "B"
-q7_correct_text = "Systems that simulate human intelligence to think and learn."
-q7_explanation = "AI aims to create machines capable of cognitive functions typically associated with human minds, such as reasoning, learning, and problem-solving."
-print_question_and_answer(7, q7_question, q7_options, q7_correct_letter, q7_correct_text, q7_explanation)
+# Define features (X) and target (y)
+X = data.drop('Crop_Yield_tons_ha', axis=1)
+y = data['Crop_Yield_tons_ha']
 
+# Identify categorical and numerical features
+categorical_features = ['Soil_Type']
+numerical_features = ['Rainfall_mm', 'Temperature_C', 'Fertilizer_kg_ha', 'Pesticide_L_ha', 'Area_Hectares']
 
-# Question 8: Types of AI
-q8_question = "Which of the following is a type of AI?"
-q8_options = [
-    ("A", "Cloud AI, Edge AI, Hybrid AI"),
-    ("B", "Narrow AI, General AI, Superintelligent AI"),
-    ("C", "Fast AI, Slow AI, Balanced AI"),
-    ("D", "Simple AI, Complex AI, Adaptive AI")
-]
-q8_correct_letter = "B"
-q8_correct_text = "Narrow AI, General AI, Superintelligent AI"
-q8_explanation = "These terms categorize AI based on its capability and intelligence level: Narrow AI (current), General AI (human-level), and Superintelligent AI (beyond human)."
-print_question_and_answer(8, q8_question, q8_options, q8_correct_letter, q8_correct_text, q8_explanation)
+# Create a preprocessing pipeline
+# One-hot encode categorical features, scale numerical features
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+    ])
 
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Question 9: Siri/Alexa Example
-q9_question = "A voice assistant like Siri or Alexa is an example of:"
-q9_options = [
-    ("A", "General AI"),
-    ("B", "Superintelligent AI"),
-    ("C", "Narrow AI"),
-    ("D", "Self-aware AI")
-]
-q9_correct_letter = "C"
-q9_correct_text = "Narrow AI"
-q9_explanation = "Voice assistants are designed for specific tasks (e.g., answering questions, setting alarms) and do not possess human-level general intelligence or self-awareness."
-print_question_and_answer(9, q9_question, q9_options, q9_correct_letter, q9_correct_text, q9_explanation)
+print(f"Training data shape: {X_train.shape}, Test data shape: {X_test.shape}")
+print("Data split into training and testing sets.")
 
+# --- 4. Build Your Model: Train Model ---
+print("\n--- 4. Training the Machine Learning Model (RandomForestRegressor) ---")
 
-# Question 10: AI in Software Engineering
-q10_question = "Which AI application is most relevant to software engineering?"
-q10_options = [
-    ("A", "Autonomous driving systems"),
-    ("B", "Automated code generation and testing"),
-    ("C", "Medical diagnosis tools"),
-    ("D", "Social media photo filters")
-]
-q10_correct_letter = "B"
-q10_correct_text = "Automated code generation and testing"
-q10_explanation = "AI applications like code generation (e.g., GitHub Copilot) and automated testing directly assist and enhance the software development process."
-print_question_and_answer(10, q10_question, q10_options, q10_correct_letter, q10_correct_text, q10_explanation)
+# Create a pipeline that first preprocesses and then trains the model
+model_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)) # n_jobs=-1 uses all available cores
+])
 
+# Train the model
+model_pipeline.fit(X_train, y_train)
 
-# Question 11: ML type using trial and error
-q11_question = "Which machine learning type involves training models through trial and error?"
-q11_options = [
-    ("A", "Supervised Learning"),
-    ("B", "Unsupervised Learning"),
-    ("C", "Reinforcement Learning"),
-    ("D", "Deep Learning")
-]
-q11_correct_letter = "C"
-q11_correct_text = "Reinforcement Learning"
-q11_explanation = "Reinforcement learning agents learn optimal behaviors by interacting with an environment and maximizing cumulative rewards through experimentation."
-print_question_and_answer(11, q11_question, q11_options, q11_correct_letter, q11_correct_text, q11_explanation)
+print("Model training complete!")
 
+# --- 4. Build Your Model: Evaluate ---
+print("\n--- 4. Evaluating the Model ---")
 
-# Question 12: Critical Ethical Concern in AI
-q12_question = "What ethical concern is critical when designing AI systems?"
-q12_options = [
-    ("A", "Ensuring bright color schemes in user interfaces."),
-    ("B", "Minimizing hardware costs."),
-    ("C", "Avoiding bias and ensuring fairness."),
-    ("D", "Using the fastest programming language.")
-]
-q12_correct_letter = "C"
-q12_correct_text = "Avoiding bias and ensuring fairness."
-q12_explanation = "Bias in training data can lead AI systems to make discriminatory decisions, making fairness a paramount ethical concern in AI design."
-print_question_and_answer(12, q12_question, q12_options, q12_correct_letter, q12_correct_text, q12_explanation)
+# Make predictions on the test set
+y_pred = model_pipeline.predict(X_test)
 
+# Calculate evaluation metrics
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+r2 = r2_score(y_test, y_pred)
 
-# Question 13: ML type with labeled data
-q13_question = "Which machine learning paradigm uses labeled data to train models?"
-q13_options = [
-    ("A", "Reinforcement Learning"),
-    ("B", "Unsupervised Learning"),
-    ("C", "Supervised Learning"),
-    ("D", "Semi-supervised Learning")
-]
-q13_correct_letter = "C"
-q13_correct_text = "Supervised Learning"
-q13_explanation = "Supervised learning trains models on datasets where each input is paired with a corresponding correct output label."
-print_question_and_answer(13, q13_question, q13_options, q13_correct_letter, q13_correct_text, q13_explanation)
+print(f"Mean Absolute Error (MAE): {mae:.2f} tons/hectare")
+print(f"Root Mean Squared Error (RMSE): {rmse:.2f} tons/hectare")
+print(f"R-squared (R2 Score): {r2:.2f}")
 
+# Visualize results: Actual vs. Predicted Yields
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=y_test, y=y_pred, alpha=0.6)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2) # y=x line
+plt.xlabel("Actual Crop Yield (tons/hectare)")
+plt.ylabel("Predicted Crop Yield (tons/hectare)")
+plt.title("Actual vs. Predicted Crop Yields")
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.show()
 
-# Question 14: Primary Goal of Reinforcement Learning
-q14_question = "What is the primary goal of reinforcement learning?"
-q14_options = [
-    ("A", "Group similar data points into clusters"),
-    ("B", "Learn by interacting with an environment to maximize rewards"),
-    ("C", "Predict outcomes using historical labeled data"),
-    ("D", "Reduce data dimensionality")
-]
-q14_correct_letter = "B"
-q14_correct_text = "Learn by interacting with an environment to maximize rewards"
-q14_explanation = "Reinforcement learning aims for an agent to discover an optimal policy for making decisions that maximize its cumulative reward in an environment."
-print_question_and_answer(14, q14_question, q14_options, q14_correct_letter, q14_correct_text, q14_explanation)
+# Visualize Residuals (Errors)
+residuals = y_test - y_pred
+plt.figure(figsize=(10, 6))
+sns.histplot(residuals, kde=True, bins=30)
+plt.title("Distribution of Residuals (Prediction Errors)")
+plt.xlabel("Residuals (Actual - Predicted Yield)")
+plt.ylabel("Frequency")
+plt.show()
 
+print("\nModel evaluation complete and visualizations displayed.")
 
-# Question 15: Non-linearity in Neural Networks
-q15_question = "Which activation function is commonly used to introduce non-linearity in neural networks?"
-q15_options = [
-    ("A", "Linear"),
-    ("B", "Sigmoid"),
-    ("C", "Mean Squared Error"),
-    ("D", "Gradient Descent")
-]
-q15_correct_letter = "B"
-q15_correct_text = "Sigmoid"
-q15_explanation = "Non-linear activation functions like Sigmoid, ReLU, or Tanh are essential for neural networks to learn complex, non-linear relationships in data."
-print_question_and_answer(15, q15_question, q15_options, q15_correct_letter, q15_correct_text, q15_explanation)
+# --- 5. Ethical Reflection ---
+print("\n--- 5. Ethical Reflection ---")
 
+print("\n**How might bias in your data affect outcomes?**")
+print("""
+1.  **Geographical Bias:** If training data disproportionately comes from one region (e.g., highly fertile lands with optimal climate), the model might perform poorly when applied to other regions with different soil types, climates, or farming practices (e.g., arid regions, smallholder farms). This could lead to inaccurate advice or resource allocation, exacerbating existing inequalities.
+2.  **Socio-economic Bias:** Data might omit or underrepresent factors like access to irrigation, quality of seeds, financial resources for farmers, or access to agricultural extension services. A model trained without these crucial socio-economic features could unfairly disadvantage small-scale or marginalized farmers whose yields are heavily influenced by these uncaptured variables.
+3.  **Crop-Specific Bias:** If the model is trained primarily on data for a few dominant crops, its predictions might be unreliable for other crops vital for local food security or biodiversity.
+4.  **Measurement Bias:** Inaccurate or inconsistent data collection methods for rainfall, temperature, or yield reporting could introduce systematic errors, making the model's predictions less reliable for real-world application.
+""")
 
-# Question 16: Clustering Customer Data
-q16_question = "Clustering customer data into groups based on purchasing behavior is an example of:"
-q16_options = [
-    ("A", "Supervised Learning"),
-    ("B", "Reinforcement Learning"),
-    ("C", "Unsupervised Learning"),
-    ("D", "Deep Learning")
-]
-q16_correct_letter = "C"
-q16_correct_text = "Unsupervised Learning"
-q16_explanation = "Clustering involves finding hidden patterns or groupings in unlabeled data, which is characteristic of unsupervised learning."
-print_question_and_answer(16, q16_question, q16_options, q16_correct_letter, q16_correct_text, q16_explanation)
+print("\n**How does your solution promote fairness and sustainability?**")
+print("""
+1.  **Fairness (Improved Resource Allocation):** By providing more accurate and timely yield forecasts, the solution can help policymakers and aid organizations allocate resources (e.g., fertilizers, improved seeds, irrigation support, disaster relief) more equitably and efficiently to areas or farmers most in need, preventing food shortages and stabilizing incomes.
+2.  **Fairness (Empowerment):** Access to predictive insights can empower smallholder farmers, allowing them to make more informed decisions about planting, harvesting, and market engagement, reducing their vulnerability to unpredictable conditions.
+3.  **Sustainability (Resource Optimization):** Accurate predictions can lead to optimized use of scarce resources like water (through better irrigation scheduling) and reduced overuse of fertilizers/pesticides, minimizing environmental impact (e.g., water pollution, soil degradation). This aligns with SDG 6 (Clean Water and Sanitation) and SDG 15 (Life on Land).
+4.  **Sustainability (Food Waste Reduction):** Better forecasts can help manage supply chains, reducing post-harvest losses and food waste by optimizing storage, transport, and distribution, contributing to responsible consumption and production (SDG 12).
+5.  **Sustainability (Climate Resilience):** Understanding how various environmental factors influence yield allows for better adaptation strategies to climate change, ensuring agricultural resilience for future generations (SDG 13: Climate Action).
+""")
 
-
-# Question 17: Deep Learning Reliance
-q17_question = "Deep Learning primarily relies on:"
-q17_options = [
-    ("A", "Decision trees and random forests"),
-    ("B", "Layered artificial neural networks"),
-    ("C", "Rule-based algorithms"),
-    ("D", "Linear regression models")
-]
-q17_correct_letter = "B"
-q17_correct_text = "Layered artificial neural networks"
-q17_explanation = "Deep learning is defined by the use of deep (multi-layered) artificial neural networks to learn complex patterns and representations."
-print_question_and_answer(17, q17_question, q17_options, q17_correct_letter, q17_correct_text, q17_explanation)
-
-
-# Question 18: Core NLP Application
-q18_question = "Which task is a core application of Natural Language Processing (NLP)?"
-q18_options = [
-    ("A", "Image recognition"),
-    ("B", "Sentiment analysis of text"),
-    ("C", "Predicting stock prices"),
-    ("D", "Robot motion planning")
-]
-q18_correct_letter = "B"
-q18_correct_text = "Sentiment analysis of text"
-q18_explanation = "NLP focuses on enabling computers to understand, interpret, and generate human language, making sentiment analysis a direct application."
-print_question_and_answer(18, q18_question, q18_options, q18_correct_letter, q18_correct_text, q18_explanation)
-
-
-# Question 19: Overfitting Definition
-q19_question = "Overfitting in machine learning occurs when:"
-q19_options = [
-    ("A", "The model performs well on training data but poorly on unseen data"),
-    ("B", "The model is too simple to capture patterns"),
-    ("C", "The dataset is too small"),
-    ("D", "The learning rate is too low")
-]
-q19_correct_letter = "A"
-q19_correct_text = "The model performs well on training data but poorly on unseen data"
-q19_explanation = "Overfitting happens when a model memorizes the training data, including noise, leading to poor generalization on new data."
-print_question_and_answer(19, q19_question, q19_options, q19_correct_letter, q19_correct_text, q19_explanation)
-
-
-# Question 20: CNN Effectiveness
-q20_question = "Convolutional Neural Networks (CNNs) are most effective for:"
-q20_options = [
-    ("A", "Time-series forecasting"),
-    ("B", "Image recognition tasks"),
-    ("C", "Text classification"),
-    ("D", "Anomaly detection in tabular data")
-]
-q20_correct_letter = "B"
-q20_correct_text = "Image recognition tasks"
-q20_explanation = "CNNs are specifically designed with architectures (convolutional and pooling layers) that excel at processing and learning features from image data."
-print_question_and_answer(20, q20_question, q20_options, q20_correct_letter, q20_correct_text, q20_explanation)
-
-
-# Question 21: Metric NOT for Classification
-q21_question = "Which metric is NOT typically used for classification model evaluation?"
-q21_options = [
-    ("A", "Accuracy"),
-    ("B", "Precision"),
-    ("C", "Mean Absolute Error (MAE)"),
-    ("D", "Recall")
-]
-q21_correct_letter = "C"
-q21_correct_text = "Mean Absolute Error (MAE)"
-q21_explanation = "MAE is a regression metric used for continuous numerical predictions, whereas Accuracy, Precision, and Recall are used for categorical classification outcomes."
-print_question_and_answer(21, q21_question, q21_options, q21_correct_letter, q21_correct_text, q21_explanation)
-
-
-# Question 22: Framework for Dynamic Neural Networks
-q22_question = "Which framework is known for its flexibility in building dynamic neural networks?"
-q22_options = [
-    ("A", "Scikit-learn"),
-    ("B", "TensorFlow"),
-    ("C", "PyTorch"),
-    ("D", "Keras")
-]
-q22_correct_letter = "C"
-q22_correct_text = "PyTorch"
-q22_explanation = "PyTorch's 'define-by-run' (dynamic computational graph) approach provides high flexibility for research and building complex, dynamic neural network architectures."
-print_question_and_answer(22, q22_question, q22_options, q22_correct_letter, q22_correct_text, q22_explanation)
-
-print("\n--- End of Quiz Answers ---")
+print("\n--- Project Execution Complete ---")
